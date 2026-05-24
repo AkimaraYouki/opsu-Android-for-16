@@ -126,14 +126,21 @@ public class AndroidLauncher extends AndroidApplication implements SurfaceHolder
 
 			@Override
 			public String getDataDir() {
-				// Android 10+: /storage/emulated/0/Android/data/fluddokt.opsu.android/files
-				// 앱 전용 경로라 특별한 권한 없이 읽기/쓰기 가능
-				java.io.File extDir = getExternalFilesDir(null);
-				if (extDir != null) {
-					extDir.mkdirs();
-					return extDir.getAbsolutePath();
+				// 목표: /storage/emulated/0/ 루트 반환 → Options.java 가 /storage/emulated/0/opsu/ 생성
+				// Android 11+: MANAGE_EXTERNAL_STORAGE 허용 시 공개 저장소 루트 사용
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+					if (Environment.isExternalStorageManager()) {
+						java.io.File extStorage = Environment.getExternalStorageDirectory();
+						if (extStorage != null) return extStorage.getAbsolutePath();
+					}
+					// 권한 미부여 시 임시 폴백 (첫 실행 직후 설정 화면으로 이동한 사이)
+					java.io.File extDir = getExternalFilesDir(null);
+					if (extDir != null) { extDir.mkdirs(); return extDir.getAbsolutePath(); }
+				} else {
+					// Android 10 이하: WRITE 권한으로 공개 저장소 루트 접근 가능
+					java.io.File extStorage = Environment.getExternalStorageDirectory();
+					if (extStorage != null) return extStorage.getAbsolutePath();
 				}
-				// 폴백: 내부 저장소
 				return getFilesDir().getAbsolutePath();
 			}
 
