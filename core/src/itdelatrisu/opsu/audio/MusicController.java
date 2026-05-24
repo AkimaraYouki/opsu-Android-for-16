@@ -456,12 +456,23 @@ public class MusicController {
 	}
 
 	/**
-	 * Sets the music pitch (and speed).
-	 * @param pitch the new pitch
+	 * Sets the music playback speed (and pitch for NC).
+	 * @param pitch the new playback speed multiplier
 	 */
 	public static void setPitch(float pitch) {
 		if (trackExists())
 			player.setPitch(pitch);
+	}
+
+	/**
+	 * Sets the audio pitch independently from speed.
+	 * Used for Nightcore: speed=1.5, audioPitch=1.5 (chipmunk effect).
+	 * Used for DoubleTime: speed=1.5, audioPitch=1.0 (pitch-preserved).
+	 * @param pitch the pitch multiplier
+	 */
+	public static void setAudioPitch(float pitch) {
+		if (trackExists())
+			player.setAudioPitch(pitch);
 	}
 
 	/**

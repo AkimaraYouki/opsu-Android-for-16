@@ -80,8 +80,47 @@ public class MusicGdx extends AbsMusic implements OnCompletionListener{
 		return path;
 	}
 
+	/** Current playback speed (1.0 = normal). */
+	private float currentSpeed = 1f;
+
+	/** Current audio pitch multiplier (1.0 = normal). For Nightcore: same as speed. */
+	private float currentAudioPitch = 1f;
+
 	@Override
-	public void setPitch(float pitch) {
+	public void setPitch(float speed) {
+		this.currentSpeed = speed;
+		applyPlaybackParams();
+	}
+
+	/**
+	 * Sets the audio pitch independently from speed (used for Nightcore).
+	 * On DT: pitch stays 1.0 (pitch-preserved fast).
+	 * On NC: pitch = speed (natural chipmunk effect).
+	 */
+	public void setAudioPitch(float pitch) {
+		this.currentAudioPitch = pitch;
+		applyPlaybackParams();
+	}
+
+	/**
+	 * Applies current speed and pitch to the underlying Android MediaPlayer
+	 * via reflection (PlaybackParams API, requires Android 6.0 / API 23+).
+	 */
+	private void applyPlaybackParams() {
+		try {
+			// LibGDX's AndroidMusic keeps the MediaPlayer in a field named "music"
+			java.lang.reflect.Field f = music.getClass().getDeclaredField("music");
+			f.setAccessible(true);
+			Object mp = f.get(music);
+			if (mp == null) return;
+
+			Object params = mp.getClass().getMethod("getPlaybackParams").invoke(mp);
+			params.getClass().getMethod("setSpeed", float.class).invoke(params, currentSpeed);
+			params.getClass().getMethod("setPitch", float.class).invoke(params, currentAudioPitch);
+			mp.getClass().getMethod("setPlaybackParams", params.getClass()).invoke(mp, params);
+		} catch (Exception e) {
+			// Not on Android or API < 23 — silently ignored
+		}
 	}
 
 }

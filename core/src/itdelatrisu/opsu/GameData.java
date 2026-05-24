@@ -1596,6 +1596,11 @@ public class GameData {
 		default:
 			return HIT_MISS;
 		}
+		// Perfect mod: any non-300 hit = instant fail
+		if (GameMod.PERFECT.isActive() && result != HIT_300 && result != HIT_MISS) {
+			resetComboStreak();
+			health.setHealth(0f);
+		}
 		if (hitValue > 0) {
 			SoundController.playHitSound(
 					hitObject.getEdgeHitSoundType(repeat),

@@ -46,16 +46,18 @@ public enum GameMod {
 	              "HardRock", "Everything just got a bit harder..."),
 	SUDDEN_DEATH  (Category.HARD, 1, GameImage.MOD_SUDDEN_DEATH, "SD", 32, Input.KEY_S, 1f,
 	              "SuddenDeath", "Miss a note and fail."),
-//	PERFECT       (Category.HARD, 1, GameImage.MOD_PERFECT, "PF", 64, Input.KEY_S, 1f,
-//	              "Perfect", "SS or quit."),
+	PERFECT       (Category.HARD, 1, GameImage.MOD_SUDDEN_DEATH, "PF", 16384, Input.KEY_S, 1f,
+	              "Perfect", "SS or quit. Any hit below 300 = fail."),
 	DOUBLE_TIME   (Category.HARD, 2, GameImage.MOD_DOUBLE_TIME, "DT", 64, Input.KEY_D, 1.12f,
 	              "DoubleTime", "Zoooooooooom."),
-//	NIGHTCORE     (Category.HARD, 2, GameImage.MOD_NIGHTCORE, "NT", 64, Input.KEY_D, 1.12f,
-//	              "Nightcore", "uguuuuuuuu"),
+	NIGHTCORE     (Category.HARD, 2, GameImage.MOD_DOUBLE_TIME, "NC", 512, Input.KEY_D, 1.12f,
+	              "Nightcore", "Higher speed + higher pitch."),
 	HIDDEN        (Category.HARD, 3, GameImage.MOD_HIDDEN, "HD", 8, Input.KEY_F, 1.06f,
 	              "Hidden", "Play with no approach circles and fading notes for a slight score advantage."),
 	FLASHLIGHT    (Category.HARD, 4, GameImage.MOD_FLASHLIGHT, "FL", 1024, Input.KEY_G, 1.12f,
 	              "Flashlight", "Restricted view area."),
+	MIRROR        (Category.SPECIAL, 4, GameImage.MOD_RELAX, "MR", 1073741824, Input.KEY_M, 1f,
+	              "Mirror", "Notes are flipped horizontally. **UNRANKED**"),
 	RELAX         (Category.SPECIAL, 0, GameImage.MOD_RELAX, "RL", 128, Input.KEY_Z, 0f,
 	              "Relax", "You don't need to click.\nGive your clicking/tapping finger a break from the heat of things.\n**UNRANKED**"),
 	AUTOPILOT     (Category.SPECIAL, 1, GameImage.MOD_AUTOPILOT, "AP", 8192, Input.KEY_X, 0f,
@@ -234,7 +236,7 @@ public enum GameMod {
 	 */
 	public static float getSpeedMultiplier() {
 		if (speedMultiplier < 0f) {
-			if (DOUBLE_TIME.isActive())
+			if (DOUBLE_TIME.isActive() || NIGHTCORE.isActive())
 				speedMultiplier = 1.5f;
 			else if (HALF_TIME.isActive())
 				speedMultiplier = 0.75f;
@@ -375,13 +377,15 @@ public enum GameMod {
 				if (this == AUTO) {
 					SPUN_OUT.active = false;
 					SUDDEN_DEATH.active = false;
+					PERFECT.active = false;
 					RELAX.active = false;
 					AUTOPILOT.active = false;
-				} else if (this == SPUN_OUT || this == SUDDEN_DEATH || this == RELAX || this == AUTOPILOT)
+				} else if (this == SPUN_OUT || this == SUDDEN_DEATH || this == PERFECT || this == RELAX || this == AUTOPILOT)
 					this.active = false;
 			}
-			if (active && (this == SUDDEN_DEATH || this == NO_FAIL || this == RELAX || this == AUTOPILOT)) {
+			if (active && (this == SUDDEN_DEATH || this == PERFECT || this == NO_FAIL || this == RELAX || this == AUTOPILOT)) {
 				SUDDEN_DEATH.active = false;
+				PERFECT.active = false;
 				NO_FAIL.active = false;
 				RELAX.active = false;
 				AUTOPILOT.active = false;
@@ -399,11 +403,20 @@ public enum GameMod {
 				else
 					EASY.active = false;
 			}
-			if (HALF_TIME.isActive() && DOUBLE_TIME.isActive()) {
-				if (this == HALF_TIME)
+			// HT, DT, NC 는 동시에 사용 불가
+			if (HALF_TIME.isActive() && (DOUBLE_TIME.isActive() || NIGHTCORE.isActive())) {
+				if (this == HALF_TIME) {
 					DOUBLE_TIME.active = false;
-				else
+					NIGHTCORE.active = false;
+				} else
 					HALF_TIME.active = false;
+			}
+			// DT 와 NC 동시 불가 (같은 슬롯)
+			if (DOUBLE_TIME.isActive() && NIGHTCORE.isActive()) {
+				if (this == DOUBLE_TIME)
+					NIGHTCORE.active = false;
+				else
+					DOUBLE_TIME.active = false;
 			}
 		}
 	}

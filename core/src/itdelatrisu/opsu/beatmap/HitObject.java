@@ -73,6 +73,9 @@ public class HitObject {
 		xOffset,   // offset right of border
 		yOffset;   // offset below health bar
 
+	/** The container width. */
+	private static int containerWidth;
+
 	/** The container height. */
 	private static int containerHeight;
 
@@ -151,6 +154,7 @@ public class HitObject {
 	 * @param height the container height
 	 */
 	public static void init(int width, int height) {
+		containerWidth = width;
 		containerHeight = height;
 		int swidth = width;
 		int sheight = height;
@@ -299,8 +303,14 @@ public class HitObject {
 
 	/**
 	 * Returns the scaled starting x coordinate.
+	 * Mirror mod flips horizontally around the playfield center.
 	 */
-	public float getScaledX() { return (x - stack * stackOffset) * xCorMultiplier + xOffset; }
+	public float getScaledX() {
+		float scaledX = (x - stack * stackOffset) * xCorMultiplier + xOffset;
+		if (GameMod.MIRROR.isActive())
+			return containerWidth - scaledX;
+		return scaledX;
+	}
 
 	/**
 	 * Returns the scaled starting y coordinate.
@@ -374,6 +384,7 @@ public class HitObject {
 
 	/**
 	 * Returns a list of scaled slider x coordinates.
+	 * Mirror mod flips all points horizontally.
 	 * Note that this method will create a new array.
 	 */
 	public float[] getScaledSliderX() {
@@ -381,8 +392,10 @@ public class HitObject {
 			return null;
 
 		float[] x = new float[sliderX.length];
-		for (int i = 0; i < x.length; i++)
-			x[i] = (sliderX[i] - stack * stackOffset) * xCorMultiplier + xOffset;
+		for (int i = 0; i < x.length; i++) {
+			float sx = (sliderX[i] - stack * stackOffset) * xCorMultiplier + xOffset;
+			x[i] = GameMod.MIRROR.isActive() ? containerWidth - sx : sx;
+		}
 		return x;
 	}
 

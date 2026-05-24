@@ -26,13 +26,14 @@ import java.util.Comparator;
  * Beatmap sorting orders.
  */
 public enum BeatmapSortOrder {
-	TITLE   ("Title",       new TitleOrder()),
-	ARTIST  ("Artist",      new ArtistOrder()),
-	CREATOR ("Creator",     new CreatorOrder()),
-	BPM     ("BPM",         new BPMOrder()),
-	LENGTH  ("Length",      new LengthOrder()),
-	DATE    ("Date Added",  new DateOrder()),
-	PLAYS   ("Most Played", new PlayOrder());
+	TITLE      ("Title",       new TitleOrder()),
+	ARTIST     ("Artist",      new ArtistOrder()),
+	CREATOR    ("Creator",     new CreatorOrder()),
+	BPM        ("BPM",         new BPMOrder()),
+	LENGTH     ("Length",      new LengthOrder()),
+	DIFFICULTY ("Difficulty",  new DifficultyOrder()),
+	DATE       ("Date Added",  new DateOrder()),
+	PLAYS      ("Most Played", new PlayOrder());
 
 	/** The name of the sort. */
 	private final String name;
@@ -112,6 +113,26 @@ public enum BeatmapSortOrder {
 					wMax = beatmap.endTime;
 			}
 			return Integer2.compare(vMax, wMax);
+		}
+	}
+
+	/**
+	 * Compares two BeatmapSetNode objects by average star rating.
+	 * Uses the highest-rated difficulty in each set for comparison.
+	 */
+	private static class DifficultyOrder implements Comparator<BeatmapSetNode> {
+		@Override
+		public int compare(BeatmapSetNode v, BeatmapSetNode w) {
+			double vMax = 0, wMax = 0;
+			for (Beatmap beatmap : v.getBeatmapSet()) {
+				if (beatmap.starRating > vMax)
+					vMax = beatmap.starRating;
+			}
+			for (Beatmap beatmap : w.getBeatmapSet()) {
+				if (beatmap.starRating > wMax)
+					wMax = beatmap.starRating;
+			}
+			return Double.compare(vMax, wMax);
 		}
 	}
 

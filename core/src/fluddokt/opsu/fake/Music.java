@@ -164,6 +164,10 @@ public class Music implements AbsMusicCompleteListener{
 		syncPosition();
 	}
 
+	public void setAudioPitch(float pitch) {
+		music.setAudioPitch(pitch);
+	}
+
 	@Override
 	public void requestSync(AbsMusic mus) {
 		System.out.println("Music Request Sync");

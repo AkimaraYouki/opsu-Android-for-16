@@ -39,6 +39,9 @@ public abstract class AbsMusic {
 
 	public abstract void setPitch(float pitch);
 
+	/** Sets the audio pitch independently. Default no-op; overridden by MusicGdx for NC. */
+	public void setAudioPitch(float pitch) {}
+
 	public void pitchFade(int duration, float endPitch) {	}
 
 }

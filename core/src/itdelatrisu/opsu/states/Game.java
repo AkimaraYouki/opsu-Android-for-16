@@ -1065,7 +1065,7 @@ public class Game extends BasicGameState {
 
 			// save score and replay
 			if (!checkpointLoaded) {
-				boolean unranked = (GameMod.AUTO.isActive() || GameMod.RELAX.isActive() || GameMod.AUTOPILOT.isActive());
+				boolean unranked = (GameMod.AUTO.isActive() || GameMod.RELAX.isActive() || GameMod.AUTOPILOT.isActive() || GameMod.MIRROR.isActive());
 				((GameRanking) game.getState(Opsu.STATE_GAMERANKING)).setGameData(data);
 				if (isReplay)
 					data.setReplay(replay);
@@ -1342,7 +1342,7 @@ public class Game extends BasicGameState {
 						VideoLoader.loader.seek(checkpoint);
 						UI.getNotificationManager().sendNotification("Seeked to checkpoint");
 					}
-					MusicController.setPitch(getCurrentPitch());
+					applyMusicPitch();
 //					if (video != null)
 //						loadVideo(checkpoint);
 					while (objectIndex < gameObjects.length &&
@@ -1362,7 +1362,7 @@ public class Game extends BasicGameState {
 				break;
 			if (isReplay || GameMod.AUTO.isActive()) {
 				playbackSpeed = playbackSpeed.next();
-				MusicController.setPitch(getCurrentPitch());
+				applyMusicPitch();
 			}
 			break;
 		case Input.KEY_UP:
@@ -1422,7 +1422,7 @@ public class Game extends BasicGameState {
 			// playback speed button
 			else if (playbackSpeed.getButton().contains(x, y)) {
 				playbackSpeed = playbackSpeed.next();
-				MusicController.setPitch(getCurrentPitch());
+				applyMusicPitch();
 			}
 
 			// replay seeking
@@ -1813,7 +1813,7 @@ public class Game extends BasicGameState {
 		skipButton.resetHover();
 		if (isReplay || GameMod.AUTO.isActive())
 			playbackSpeed.getButton().resetHover();
-		MusicController.setPitch(getCurrentPitch());
+		applyMusicPitch();
 
 	}
 	private boolean resumeMusicAfterAFrame = false;
@@ -2060,7 +2060,7 @@ public class Game extends BasicGameState {
 			*/
 			VideoLoader.loader.seek(firstObjectTime - SKIP_OFFSET);
 			MusicController.setPosition(firstObjectTime - SKIP_OFFSET);
-			MusicController.setPitch(getCurrentPitch());
+			applyMusicPitch();
 			replaySkipTime = (isReplay) ? -1 : trackPosition;
 			if (isReplay) {
 				replayX = (int) skipButton.getX();
@@ -2583,10 +2583,22 @@ public class Game extends BasicGameState {
 		return objectIndex < gameObjects.length || !passedObjects.isEmpty();
 	}
 
-	/** Returns the current pitch. */
+	/** Returns the current playback speed multiplier. */
 	private float getCurrentPitch() {
 		float base = (Options.getFixedSpeed() > 0f) ? Options.getFixedSpeed() : 1f;
 		return base * GameMod.getSpeedMultiplier() * playbackSpeed.getModifier();
+	}
+
+	/**
+	 * Applies the current playback speed and pitch to the music.
+	 * Nightcore: speed=rate, audioPitch=rate (chipmunk).
+	 * DoubleTime: speed=rate, audioPitch=1.0 (pitch-preserved).
+	 */
+	private void applyMusicPitch() {
+		float speed = getCurrentPitch();
+		MusicController.setPitch(speed);
+		// NC: natural pitch change; DT/HT: pitch-compensated (stay at original pitch)
+		MusicController.setAudioPitch(GameMod.NIGHTCORE.isActive() ? speed : 1f);
 	}
 
 	/**
