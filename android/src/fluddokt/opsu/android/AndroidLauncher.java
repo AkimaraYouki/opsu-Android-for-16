@@ -9,10 +9,12 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -28,11 +30,12 @@ import com.amazonaws.regions.Regions;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.files.FileHandle;
-import com.crashlytics.android.Crashlytics;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.InterstitialAd;
-import com.google.android.gms.ads.MobileAds;
+// import com.crashlytics.android.Crashlytics;  // Fabric 종료 → 추후 Firebase Crashlytics로 교체
+// AdMob: google-services.json 없으므로 비활성화
+// import com.google.android.gms.ads.AdListener;
+// import com.google.android.gms.ads.AdRequest;
+// import com.google.android.gms.ads.InterstitialAd;
+// import com.google.android.gms.ads.MobileAds;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -42,12 +45,12 @@ import fluddokt.ex.DynamoDB.DynamoDB;
 import fluddokt.ex.InterstitialAdLoader;
 import fluddokt.ex.VideoLoader;
 import fluddokt.opsu.fake.GameOpsu;
-import io.fabric.sdk.android.Fabric;
+// import io.fabric.sdk.android.Fabric;  // Fabric 종료 → 제거
 
 
 public class AndroidLauncher extends AndroidApplication implements SurfaceHolder.Callback {
 	String identityPool;
-	private InterstitialAd mInterstitialAd;
+	// private InterstitialAd mInterstitialAd;  // AdMob 비활성화
 	private SharedPreferences prefs;
 //Media Player Variables
 	String path;
@@ -71,19 +74,35 @@ public class AndroidLauncher extends AndroidApplication implements SurfaceHolder
 
 		setContentView(R.layout.main);
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-				Log.v("Permissions","Good");
+		// Android 11+: MANAGE_EXTERNAL_STORAGE 권한으로 Downloads 폴더의 .osz 파일에 접근
+		// 설정 화면으로 이동해서 유저가 직접 허용해야 함 (런타임 다이얼로그 불가)
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+			if (!Environment.isExternalStorageManager()) {
+				try {
+					Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+							Uri.parse("package:" + getPackageName()));
+					startActivity(intent);
+				} catch (Exception e) {
+					// 일부 기기에서 앱별 설정이 없을 경우 전체 파일 관리 목록으로 이동
+					Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+					startActivity(intent);
+				}
+			} else {
+				Log.v("Permissions", "MANAGE_EXTERNAL_STORAGE granted");
 			}
-			else{
+		} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			// Android 6-10: 레거시 READ/WRITE 권한
+			if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 				requestPermissionWrite();
+			}
+			if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 				requestPermissionRead();
 			}
 		}
 		config.useImmersiveMode = true;
 		config.useWakelock = true;
 
-		Log.e("BruhBruh",""+Fabric.isInitialized());
+		// Log.e("BruhBruh",""+Fabric.isInitialized());  // Fabric 제거
 
 		DeviceInfo.info = new DeviceInfo() {
 			@Override
@@ -102,8 +121,20 @@ public class AndroidLauncher extends AndroidApplication implements SurfaceHolder
 
 			@Override
 			public String getDownloadDir() {
-
 				return (String.valueOf(new FileHandle(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS))));
+			}
+
+			@Override
+			public String getDataDir() {
+				// Android 10+: /storage/emulated/0/Android/data/fluddokt.opsu.android/files
+				// 앱 전용 경로라 특별한 권한 없이 읽기/쓰기 가능
+				java.io.File extDir = getExternalFilesDir(null);
+				if (extDir != null) {
+					extDir.mkdirs();
+					return extDir.getAbsolutePath();
+				}
+				// 폴백: 내부 저장소
+				return getFilesDir().getAbsolutePath();
 			}
 
 			@Override
@@ -155,8 +186,8 @@ public class AndroidLauncher extends AndroidApplication implements SurfaceHolder
 
 			@Override
 			public void reportError(Throwable e){
-				Log.e("Crashlytics Reporting","Error Reported");
-				Crashlytics.getInstance().core.logException(e);
+				Log.e("Crashlytics Reporting","Error Reported: " + e.getMessage());
+				// Crashlytics.getInstance().core.logException(e);  // Fabric 제거, 추후 Firebase Crashlytics로 교체
 			}
 			@Override
 			public void restart(){
@@ -185,74 +216,11 @@ public class AndroidLauncher extends AndroidApplication implements SurfaceHolder
 
 		};
 
-		//Initialize interstitial ads
-		MobileAds.initialize(this,
-				getString(R.string.admob_id));
-		mInterstitialAd = new InterstitialAd(this);
-		mInterstitialAd.setAdUnitId(getString(R.string.ad1_id));
-		//Send failure message if ad fails to load
-		mInterstitialAd.setAdListener(new AdListener(){
-			@Override
-			public void onAdFailedToLoad(int errorCode){
-//				InterstitialAdLoader.ad.sendNotification("Connection Failed");
-			}
-		});
-
+		// AdMob 광고 비활성화 (google-services.json 없음, 추후 활성화 가능)
 		InterstitialAdLoader.ad = new InterstitialAdLoader(){
-			//Load ad
-			@Override
-			public void load(){
-				try {
-					runOnUiThread(new Runnable() {
-						public void run() {
-							if(!mInterstitialAd.isLoaded()&&!mInterstitialAd.isLoading()){
-							AdRequest interstitialRequest = new AdRequest.Builder().build();
-							mInterstitialAd.loadAd(interstitialRequest);
-							}
-						}
-					});
-				}
-				catch (Exception e) {}
-
-			}
-			@Override
-			public void loadAndShow(){
-				try {
-
-					runOnUiThread(new Runnable() {
-						public void run() {
-							//If the ad isn't loaded, load it, and then show it immediately after its loaded
-							if(!mInterstitialAd.isLoaded()) {
-								if (!mInterstitialAd.isLoading()) {
-									AdRequest interstitialRequest = new AdRequest.Builder().build();
-									mInterstitialAd.loadAd(interstitialRequest);
-//									InterstitialAdLoader.ad.sendNotification("Loading...");
-								}
-								//Show the ad immediately after its loaded
-								mInterstitialAd.setAdListener(new AdListener() {
-									@Override
-									public void onAdLoaded() {
-										mInterstitialAd.show();
-										//Reset the ad so it doesn't always immediately show the ad when its done loading
-										mInterstitialAd.setAdListener(new AdListener() {
-											@Override
-											public void onAdLoaded() {
-												super.onAdLoaded();
-											}
-										});
-									}
-								});
-							}
-							//If the ad is loaded show the add
-							else
-								mInterstitialAd.show();
-						}
-					});
-				}
-				catch (Exception e) {}
-			}
-
-			};
+			@Override public void load() {}
+			@Override public void loadAndShow() {}
+		};
 		surfaceView = findViewById(R.id.video);
 		holder = surfaceView.getHolder();
 		holder.addCallback(this);

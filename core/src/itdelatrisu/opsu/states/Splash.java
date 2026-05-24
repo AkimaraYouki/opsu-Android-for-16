@@ -157,8 +157,15 @@ public class Splash extends BasicGameState {
 						File beatmapDir = Options.getBeatmapDir();
 						File importDir = Options.getImportDir();
 
-						// unpack all OSZ archives
+						// unpack all OSZ archives from Import dir
 						OszUnpacker.unpackAllFiles(importDir, beatmapDir);
+
+						// Android: Downloads 폴더에서도 .osz 자동 스캔
+						// 유저가 브라우저로 다운받은 파일을 별도 이동 없이 바로 사용 가능
+						String downloadDirPath = fluddokt.ex.DeviceInfo.info.getDownloadDir();
+						if (downloadDirPath != null) {
+							OszUnpacker.unpackAllFiles(new File(downloadDirPath), beatmapDir);
+						}
 
 						// parse song directory
 						BeatmapParser.parseAllFiles(beatmapDir);

@@ -193,6 +193,14 @@ public class Options {
 	 * @return the XDG base directory, or the working directory if unavailable
 	 */
 	private static File getXDGBaseDir(String env, String fallback) {
+		// Android 10+: 앱 전용 외부 저장소 사용 (Scoped Storage 대응)
+		// /storage/emulated/0/Android/data/fluddokt.opsu.android/files/opsu
+		String dataDir = fluddokt.ex.DeviceInfo.info.getDataDir();
+		if (dataDir != null) {
+			File dir = new File(dataDir, "opsu");
+			dir.mkdir(); // fake.File의 mkdir()은 내부적으로 mkdirs() 호출
+			return dir;
+		}
 		return new File("./opsu");
 		/*
 		File workingDir = Utils.isJarRunning() ?

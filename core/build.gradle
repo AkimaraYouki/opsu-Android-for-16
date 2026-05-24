@@ -1,7 +1,15 @@
-apply plugin: "java"
+// java-library: api() 설정 사용 가능 (android 모듈에 의존성 노출)
+apply plugin: "java-library"
 
-sourceCompatibility = 1.7
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+// java { } 블록 사용: 구식 JavaPluginConvention 대신 JavaPluginExtension 사용 (Gradle 9.0 대비)
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+// UTF-8 인코딩 설정
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
 
 sourceSets.main.java.srcDirs = [ "src/" ]
 sourceSets {
@@ -21,9 +29,8 @@ sourceSets {
 }
 
 dependencies {
-  compile 'com.amazonaws:aws-android-sdk-core:2.6.30'
-  compile 'com.amazonaws:aws-android-sdk-ddb:2.6.30'
-  compile 'com.amazonaws:aws-android-sdk-ddb-mapper:2.6.30'
-
+  // api: android 모듈에서 AndroidLauncher.java가 직접 AWS 클래스를 사용하므로 api로 노출
+  api 'com.amazonaws:aws-android-sdk-core:2.6.30'
+  api 'com.amazonaws:aws-android-sdk-ddb:2.6.30'
+  api 'com.amazonaws:aws-android-sdk-ddb-mapper:2.6.30'
 }
-

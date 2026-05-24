@@ -2,5 +2,9 @@
 <resources>
 
     <string name="app_name">opsu!</string>
+    <!-- 아래 값들은 실제 서비스 시 교체 필요 (현재는 빌드용 placeholder) -->
+    <string name="aws_identity">PLACEHOLDER</string>
+    <string name="admob_id">ca-app-pub-0000000000000000~0000000000</string>
+    <string name="ad1_id">ca-app-pub-0000000000000000/0000000000</string>
 
 </resources>

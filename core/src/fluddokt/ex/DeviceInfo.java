@@ -9,6 +9,11 @@ public class DeviceInfo {
 	public String getDownloadDir() {
 		return null;
 	}
+	// Android 10+: 앱 전용 외부 저장소 경로 반환 (scoped storage 대응)
+	// 예: /storage/emulated/0/Android/data/fluddokt.opsu.android/files
+	public String getDataDir() {
+		return null;
+	}
 	public boolean shownNotification(String name){return false;}
 	public boolean getHardReset(){return false;}
 	public void setHardReset(boolean val){}

@@ -1,8 +1,9 @@
 
 
 android {
-    buildToolsVersion '28.0.3'
-    compileSdkVersion 29
+    // buildToolsVersion 제거: AGP 8.9.1이 자동으로 최신 버전(35.0.0) 선택
+    compileSdk 35
+    namespace 'fluddokt.opsu.android'
 
     sourceSets {
         main {
@@ -19,55 +20,52 @@ android {
     }
     defaultConfig {
         versionCode 48
-        minSdkVersion 18
+        minSdk 21
+        targetSdk 35
         multiDexEnabled true
     }
 
-    dexOptions {
-        jumboMode true
-    }
+    // dexOptions는 AGP 8.x 에서 제거됨 (자동 처리)
 
     productFlavors {
     }
-}
-// needed to add JNI shared libraries to APK when compiling on CLI
-//tasks.withType(com.android.build.gradle.tasks.PackageApplication) { pkgTask ->
-//    pkgTask.jniFolders = new HashSet<File>()
-//    pkgTask.jniFolders.add(new File(projectDir, 'libs'))
-//}
-// called every time gradle gets executed, takes the native dependencies of
-// the natives configuration, and extracts them to the proper libs/ folders
-// so they get packed with the APK.
-task copyAndroidNatives() {
-    file("libs/armeabi/").mkdirs();
-    file("libs/armeabi-v7a/").mkdirs();
-    file("libs/x86/").mkdirs();
-    file("libs/arm64-v8a/").mkdirs()
-    file("libs/x86_64/").mkdirs()
 
-    configurations.natives.files.each { jar ->
-        def outputDir = null
-        if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("libs/armeabi-v7a")
-        if (jar.name.endsWith("natives-armeabi.jar")) outputDir = file("libs/armeabi")
-        if (jar.name.endsWith("natives-x86.jar")) outputDir = file("libs/x86")
-        if (jar.name.endsWith("natives-arm64-v8a.jar")) outputDir = file("libs/arm64-v8a")
-        if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("libs/x86_64")
-        if (outputDir != null) {
-            copy {
-                from zipTree(jar)
-                into outputDir
-                include "*.so"
+    // AGP 8.x 필수: 빌드 타입 명시
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+        debug {
+        }
+    }
+}
+
+// JNI 네이티브 라이브러리를 ABI 폴더에 추출하는 태스크
+// doLast: 실제 실행 단계에서만 동작 (구식 configuration phase 실행 → deprecation 경고 방지)
+tasks.register('copyAndroidNatives') {
+    doLast {
+        file("libs/armeabi-v7a/").mkdirs()
+        file("libs/x86/").mkdirs()
+        file("libs/arm64-v8a/").mkdirs()
+        file("libs/x86_64/").mkdirs()
+
+        configurations.natives.files.each { jar ->
+            def outputDir = null
+            if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("libs/armeabi-v7a")
+            if (jar.name.endsWith("natives-x86.jar"))         outputDir = file("libs/x86")
+            if (jar.name.endsWith("natives-arm64-v8a.jar"))   outputDir = file("libs/arm64-v8a")
+            if (jar.name.endsWith("natives-x86_64.jar"))      outputDir = file("libs/x86_64")
+            if (outputDir != null) {
+                copy {
+                    from zipTree(jar)
+                    into outputDir
+                    include "*.so"
+                }
             }
         }
     }
 }
-repositories {
-    maven {
-        url 'https://maven.google.com'
-    }
-    jcenter()
-}
-
+// maven.google.com은 allprojects의 google()으로 이미 커버 → 중복 제거
 
 task run(type: Exec) {
     def path
@@ -88,36 +86,15 @@ task run(type: Exec) {
     }
 
     def adb = path + "/platform-tools/adb"
-    commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.mygdx.game.android/com.mygdx.game.android.AndroidLauncher'
+    commandLine "$adb", 'shell', 'am', 'start', '-n', 'fluddokt.opsu.android/fluddokt.opsu.android.AndroidLauncher'
 }
 
-// sets up the Android Idea project, using the old Ant based build.
-idea {
-    module {
-        sourceDirs += file("src");
-        scopes = [COMPILE: [plus: [project.configurations.compile]]]
-
-        iml {
-            withXml {
-                def node = it.asNode()
-                def builder = NodeBuilder.newInstance();
-                builder.current = node;
-                builder.component(name: "FacetManager") {
-                    facet(type: "android", name: "Android") {
-                        configuration {
-                            option(name: "UPDATE_PROPERTY_FILES", value: "true")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 dependencies {
-    implementation 'com.google.android.gms:play-services-ads:18.1.1'
-    implementation 'com.google.firebase:firebase-core:17.0.1'
-    implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
+    // play-services-ads, firebase-core: google-services.json 필요 → 파일 없으므로 비활성화
+    // 필요 시 Firebase 콘솔에서 google-services.json 발급 후 활성화
+    // implementation 'com.google.android.gms:play-services-ads:18.1.1'
+    // implementation 'com.google.firebase:firebase-core:17.0.1'
 }
 
-apply plugin: 'io.fabric'
-apply plugin: 'com.google.gms.google-services'
+// google-services.json 없으면 빌드 실패 → 비활성화
+// apply plugin: 'com.google.gms.google-services'
